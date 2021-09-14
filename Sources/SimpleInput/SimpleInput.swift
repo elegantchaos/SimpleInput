@@ -36,17 +36,17 @@ struct InputVC: UIViewControllerRepresentable{
         return EmptyViewController()
     }
     
-    func updateUIViewController(_ uiViewController: EmptyViewController, context: Context) {
+    func updateUIViewController(_ controller: EmptyViewController, context: Context) {
         let coordinator = context.coordinator
-        if let input = input, uiViewController.presentedViewController == nil {
+        if let input = input, controller.presentedViewController == nil {
             let alert = UIAlertController(input: input) {
                 coordinator.alert = nil
                 self.input = nil
             }
 
             coordinator.alert = alert
-            uiViewController.present(alert, animated: true)
-        } else if uiViewController.presentedViewController != nil, input == nil {
+            controller.present(alert, animated: true)
+        } else if controller.presentedViewController != nil, input == nil {
             context.coordinator.alert?.dismiss(animated: true)
             coordinator.alert = nil
         }
@@ -56,26 +56,7 @@ struct InputVC: UIViewControllerRepresentable{
 public enum Button {
     case normal(String,(String) -> ())
     case destructive(String, (String) -> ())
-    case cancel(() -> ())
-    
-//    var style: UIAlertAction.Style {
-//        switch self {
-//            case .normal:
-//                return .default
-//            case .destructive:
-//                return .destructive
-//            case .cancel:
-//                return .cancel
-//        }
-//    }
-//
-//    var titleAndAction: (String, (String) -> ()) {
-//        switch self {
-//            case .normal(let title, let action): return (title, action)
-//            case .destructive(let title, let action): return (title, action)
-//            case .cancel: return ("Cancel", { _ in })
-//        }
-//    }
+    case cancel(String = "Cancel", () -> ())
     
     func action(field: UITextField? = nil, completion: @escaping () -> ()) -> UIAlertAction {
         switch self {
@@ -91,8 +72,8 @@ public enum Button {
                     completion()
                 }
 
-            case .cancel(let action):
-                return UIAlertAction(title: "Cancel", style: .cancel) { _ in
+            case .cancel(let title, let action):
+                return UIAlertAction(title: title, style: .cancel) { _ in
                     action()
                     completion()
                 }
