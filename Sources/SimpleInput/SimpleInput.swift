@@ -10,11 +10,9 @@ extension UIAlertController {
         self.init(title: input.title, message: input.message, preferredStyle: .alert)
         addTextField { $0.placeholder = input.placeholder }
 
-        if let action = input.cancel?.action(completion: completion) {
-            addAction(action)
+        for button in input.buttons {
+            addAction(button.action(field: self.textFields?.first, completion: completion))
         }
-        
-        addAction(input.submit.action(field: self.textFields?.first, completion: completion))
     }
 }
 
@@ -56,24 +54,24 @@ struct InputVC: UIViewControllerRepresentable{
 public enum Button {
     case normal(String,(String) -> ())
     case destructive(String, (String) -> ())
-    case cancel(String = "Cancel", () -> ())
+    case cancel(String = "Cancel", () -> () = { })
     
     func action(field: UITextField? = nil, completion: @escaping () -> ()) -> UIAlertAction {
         switch self {
             case .normal(let title, let action):
-                return UIAlertAction(title: title, style: .default) { _ in
+                return UIAlertAction(title: NSLocalizedString(title, comment: "button title"), style: .default) { _ in
                     action(field?.text ?? "")
                     completion()
                 }
                 
             case .destructive(let title, let action):
-                return UIAlertAction(title: title, style: .destructive) { _ in
+                return UIAlertAction(title: NSLocalizedString(title, comment: "button title"), style: .destructive) { _ in
                     action(field?.text ?? "")
                     completion()
                 }
 
             case .cancel(let title, let action):
-                return UIAlertAction(title: title, style: .cancel) { _ in
+                return UIAlertAction(title: NSLocalizedString(title, comment: "button title"), style: .cancel) { _ in
                     action()
                     completion()
                 }
@@ -83,19 +81,17 @@ public enum Button {
 }
 
 public struct SimpleInput {
-    public init(title: String, message: String, placeholder: String = "", submit: Button, cancel: Button? = nil) {
-        self.title = title
-        self.message = message
-        self.placeholder = placeholder
-        self.submit = submit
-        self.cancel = cancel
+    public init(title: String, message: String, placeholder: String = "", buttons: [Button]) {
+        self.title = NSLocalizedString(title, comment: "input title")
+        self.message = NSLocalizedString(message, comment: "input message")
+        self.placeholder = NSLocalizedString(placeholder, comment: "input placeholder")
+        self.buttons = buttons
     }
     
-    public var title: String
-    public var message: String
-    public var placeholder: String
-    public var submit: Button
-    public var cancel: Button?
+    public let title: String
+    public let message: String
+    public let placeholder: String
+    public let buttons: [Button]
 }
 
 struct SimpleInputModifier: ViewModifier {
