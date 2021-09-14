@@ -5,85 +5,22 @@
 
 import SwiftUI
 
-extension UIAlertController {
-    convenience init(input: SimpleInput, completion: @escaping () -> ()) {
-        self.init(title: input.title, message: input.message, preferredStyle: .alert)
-        addTextField {
-            let settings = input.field
-            $0.placeholder = settings.placeholder
-            $0.autocapitalizationType = settings.autocapitalizationType
-            $0.autocorrectionType = settings.autocorrectionType
-            $0.spellCheckingType = settings.spellCheckingType
-            $0.smartQuotesType = settings.smartQuotesType
-            $0.smartDashesType = settings.smartDashesType
-            $0.smartInsertDeleteType = settings.smartInsertDeleteType
-            $0.keyboardType = settings.keyboardType
-            $0.keyboardAppearance = settings.keyboardAppearance
-            $0.returnKeyType = settings.returnKeyType
-            $0.enablesReturnKeyAutomatically = settings.enablesReturnKeyAutomatically
-            $0.isSecureTextEntry = settings.isSecureTextEntry
-            if let type = settings.textContentType {
-                $0.textContentType = type
-            }
-        }
-
-        for button in input.buttons {
-            addAction(button.action(field: self.textFields?.first, completion: completion))
-        }
-    }
-}
-
-class EmptyViewController: UIViewController {
-}
-
-struct InputVC: UIViewControllerRepresentable{
-    @Binding var input: SimpleInput?
-    
-    final class Coordinator {
-        var alert: UIAlertController?
-    }
-    
-    func makeCoordinator() -> Coordinator {
-        return Coordinator()
-    }
-
-    func makeUIViewController(context: Context) -> EmptyViewController {
-        return EmptyViewController()
-    }
-    
-    func updateUIViewController(_ controller: EmptyViewController, context: Context) {
-        let coordinator = context.coordinator
-        if let input = input, controller.presentedViewController == nil {
-            let alert = UIAlertController(input: input) {
-                coordinator.alert = nil
-                self.input = nil
-            }
-
-            coordinator.alert = alert
-            controller.present(alert, animated: true)
-        } else if controller.presentedViewController != nil, input == nil {
-            context.coordinator.alert?.dismiss(animated: true)
-            coordinator.alert = nil
-        }
-    }
-}
-
-
 public struct SimpleInput {
+    public typealias Validator = (String) -> Bool
     public enum Button {
-        case normal(String,(String) -> ())
-        case destructive(String, (String) -> ())
+        case normal(String,(String) -> (), Validator? = nil)
+        case destructive(String, (String) -> (), Validator? = nil)
         case cancel(String = "Cancel", () -> () = { })
         
         func action(field: UITextField? = nil, completion: @escaping () -> ()) -> UIAlertAction {
             switch self {
-                case .normal(let title, let action):
+                case .normal(let title, let action, _):
                     return UIAlertAction(title: NSLocalizedString(title, comment: "button title"), style: .default) { _ in
                         action(field?.text ?? "")
                         completion()
                     }
                     
-                case .destructive(let title, let action):
+                case .destructive(let title, let action, _):
                     return UIAlertAction(title: NSLocalizedString(title, comment: "button title"), style: .destructive) { _ in
                         action(field?.text ?? "")
                         completion()
@@ -114,6 +51,8 @@ public struct SimpleInput {
         let isSecureTextEntry: Bool
         let textContentType: UITextContentType?
         
+        let validator: Validator?
+        
         public init(
             placeholder: String = "",
             autocapitalizationType: UITextAutocapitalizationType = .sentences,
@@ -127,7 +66,8 @@ public struct SimpleInput {
             returnKeyType: UIReturnKeyType = .default,
             enablesReturnKeyAutomatically: Bool = false,
             isSecureTextEntry: Bool = false,
-            textContentType: UITextContentType? = nil
+            textContentType: UITextContentType? = nil,
+            validator: Validator? = nil
             ) {
             self.placeholder = NSLocalizedString(placeholder, comment: "input placeholder")
             self.autocapitalizationType = autocapitalizationType
@@ -142,6 +82,7 @@ public struct SimpleInput {
             self.enablesReturnKeyAutomatically = enablesReturnKeyAutomatically
             self.isSecureTextEntry = isSecureTextEntry
             self.textContentType = textContentType
+            self.validator = validator
         }
     }
     
@@ -158,12 +99,130 @@ public struct SimpleInput {
     public let buttons: [Button]
 }
 
+
+final class Coordinator: NSObject, UITextFieldDelegate {
+    typealias ButtonMap = [Int: (String) -> Bool]
+    
+    var alert: UIAlertController?
+    var validator: SimpleInput.Validator?
+    var buttonMap: ButtonMap = [:]
+
+    func textFieldDidBeginEditing(_ textField: UITextField) {
+        let existing = textField.text ?? ""
+        for (index, validator) in buttonMap {
+            alert!.actions[index].isEnabled = validator(existing)
+        }
+    }
+    
+    func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
+        guard let validator = validator else { return true }
+        
+        let existing = textField.text ?? ""
+        let modified = (existing as NSString).replacingCharacters(in: range, with: string)
+        
+        for (index, validator) in buttonMap {
+            alert!.actions[index].isEnabled = validator(modified)
+        }
+
+        return validator(modified)
+    }
+    
+    func setup(alert: UIAlertController, input: SimpleInput) {
+        var index = 0
+        var map: ButtonMap = [:]
+        for button in input.buttons {
+            switch button {
+                case .normal(_, _, let validator), .destructive(_, _, let validator):
+                    map[index] = validator
+                default:
+                    break
+            }
+            index += 1
+        }
+        
+        self.alert = alert
+        self.validator = input.field.validator
+        self.buttonMap = map
+    }
+    
+    func reset() {
+        alert = nil
+        buttonMap = [:]
+        validator = nil
+    }
+}
+
+
+extension UIAlertController {
+    convenience init(input: SimpleInput, coordinator: Coordinator, completion: @escaping () -> ()) {
+        self.init(title: input.title, message: input.message, preferredStyle: .alert)
+        addTextField {
+            let settings = input.field
+            $0.placeholder = settings.placeholder
+            $0.delegate = coordinator
+            $0.autocapitalizationType = settings.autocapitalizationType
+            $0.autocorrectionType = settings.autocorrectionType
+            $0.spellCheckingType = settings.spellCheckingType
+            $0.smartQuotesType = settings.smartQuotesType
+            $0.smartDashesType = settings.smartDashesType
+            $0.smartInsertDeleteType = settings.smartInsertDeleteType
+            $0.keyboardType = settings.keyboardType
+            $0.keyboardAppearance = settings.keyboardAppearance
+            $0.returnKeyType = settings.returnKeyType
+            $0.enablesReturnKeyAutomatically = settings.enablesReturnKeyAutomatically
+            $0.isSecureTextEntry = settings.isSecureTextEntry
+            if let type = settings.textContentType {
+                $0.textContentType = type
+            }
+        }
+
+        for button in input.buttons {
+            let action = button.action(field: self.textFields?.first, completion: completion)
+            addAction(action)
+        }
+    }
+}
+
+class EmptyViewController: UIViewController {
+}
+
+struct AlertHostView: UIViewControllerRepresentable{
+    @Binding var input: SimpleInput?
+    
+    
+    func makeCoordinator() -> Coordinator {
+        return Coordinator()
+    }
+
+    func makeUIViewController(context: Context) -> EmptyViewController {
+        return EmptyViewController()
+    }
+    
+    func updateUIViewController(_ controller: EmptyViewController, context: Context) {
+        let coordinator = context.coordinator
+        if let input = input, controller.presentedViewController == nil {
+            let alert = UIAlertController(input: input, coordinator: coordinator) {
+                coordinator.reset()
+                self.input = nil
+            }
+
+            coordinator.setup(alert: alert, input: input)
+            controller.present(alert, animated: true)
+
+        } else if controller.presentedViewController != nil, input == nil {
+            context.coordinator.alert?.dismiss(animated: true)
+            coordinator.reset()
+        }
+    }
+}
+
+
 struct SimpleInputModifier: ViewModifier {
     @Binding var input: SimpleInput?
     
     func body(content: Content) -> some View {
         content
-            .background(InputVC(input: $input))
+            .background(AlertHostView(input: $input))
     }
 }
 
