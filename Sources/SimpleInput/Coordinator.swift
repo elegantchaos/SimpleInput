@@ -49,8 +49,10 @@ extension Coordinator: UITextFieldDelegate {
     }
     
     func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
-        let proposedText = ((textField.text ?? "") as NSString).replacingCharacters(in: range, with: string)
-        validateButtons(for: proposedText)
-        return validator?(proposedText) ?? true
+        let existingText = (textField.text ?? "")
+        let proposedText = (existingText as NSString).replacingCharacters(in: range, with: string)
+        let textAllowed = validator?(proposedText) ?? true
+        validateButtons(for: textAllowed ? proposedText : existingText)
+        return textAllowed
     }
 }
