@@ -1,4 +1,4 @@
-// swift-tools-version:5.3
+// swift-tools-version:5.7
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 //  Created by Sam Deane on 14/09/2021.
@@ -10,7 +10,7 @@ import PackageDescription
 let package = Package(
     name: "SimpleInput",
     platforms: [
-        .macOS(.v10_15), .iOS(.v13), .tvOS(.v13), .watchOS(.v6)
+        .macCatalyst(.v13), .iOS(.v13), .tvOS(.v13), .watchOS(.v6)
     ],
     products: [
         .library(
@@ -18,7 +18,7 @@ let package = Package(
             targets: ["SimpleInput"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/elegantchaos/XCTestExtensions.git", from: "1.3.3")
+        .package(url: "https://github.com/elegantchaos/XCTestExtensions.git", from: "1.5.0")
     ],
     targets: [
         .target(
