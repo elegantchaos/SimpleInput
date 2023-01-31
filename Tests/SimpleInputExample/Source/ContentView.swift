@@ -14,12 +14,14 @@ struct ContentView: View {
         VStack {
             Text("Hello, world!")
                 .padding()
-
-            Text(text)
             
-            Button(action: handleShowInput) {
-                Text("Show Input")
-            }
+            Text(text.isEmpty ? "No Input" : "Input was: \(text)")
+            
+            VStack {
+                Button(action: handleShowInput) {
+                    Text("Show Input")
+                }
+            }.padding()
         }
         .simpleInput($input)
     }
@@ -28,9 +30,11 @@ struct ContentView: View {
         input = SimpleInput(
             title: "Test",
             message: "Message",
-            placeholder: "place",
-            submit: .normal("OK") { entered in text = "Input was: \(entered)" },
-            cancel: .cancel() { text = "Input cancelled" }
+            field: .init(placeholder: "placeholder", value: text),
+            buttons: [
+                .normal("OK") { entered in text = entered },
+                .cancel() { text = "Input cancelled" }
+            ]
         )
     }
 }
