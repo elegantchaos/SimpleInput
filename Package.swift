@@ -24,8 +24,5 @@ let package = Package(
         .target(
             name: "SimpleInput",
             dependencies: []),
-        .testTarget(
-            name: "SimpleInputTests",
-            dependencies: ["SimpleInput", "XCTestExtensions"]),
     ]
 )
