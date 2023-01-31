@@ -39,6 +39,7 @@ internal struct HostView: UIViewControllerRepresentable{
         controller.addTextField {
             let settings = input.field
             $0.placeholder = settings.placeholder
+            $0.text = settings.value
             $0.delegate = coordinator
             $0.autocapitalizationType = settings.autocapitalizationType
             $0.autocorrectionType = settings.autocorrectionType

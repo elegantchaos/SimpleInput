@@ -26,19 +26,20 @@ public struct SimpleInput {
                         action(field?.text ?? "")
                         completion()
                     }
-
+                    
                 case .cancel(let title, let action):
                     return UIAlertAction(title: NSLocalizedString(title, comment: "button title"), style: .cancel) { _ in
                         action()
                         completion()
                     }
             }
-
+            
         }
     }
-
+    
     public struct Field {
         let placeholder: String
+        let value: String
         let autocapitalizationType: UITextAutocapitalizationType
         let autocorrectionType: UITextAutocorrectionType
         let spellCheckingType: UITextSpellCheckingType
@@ -56,6 +57,7 @@ public struct SimpleInput {
         
         public init(
             placeholder: String = "",
+            value: String = "",
             autocapitalizationType: UITextAutocapitalizationType = .sentences,
             autocorrectionType: UITextAutocorrectionType = .default,
             spellCheckingType: UITextSpellCheckingType = .default,
@@ -69,7 +71,8 @@ public struct SimpleInput {
             isSecureTextEntry: Bool = false,
             textContentType: UITextContentType? = nil,
             validator: Validator? = nil
-            ) {
+        ) {
+            self.value = value
             self.placeholder = NSLocalizedString(placeholder, comment: "input placeholder")
             self.autocapitalizationType = autocapitalizationType
             self.autocorrectionType = autocorrectionType
